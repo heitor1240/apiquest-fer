@@ -1,0 +1,149 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protótipo API Disney</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-4xl bg-white p-6 sm:p-8 rounded-lg shadow-lg">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-orange-600">Buscar por Filmes</h1>
+            <p class="text-gray-600 mt-2">Digite o nome do filme para aparecer os personagens dele ( Nome do filme em Ingles ).</p>
+        </header>
+
+        
+        <div class="mb-4 flex flex-col sm:flex-row gap-2">
+            <input type="text" id="searchInput" placeholder="Digite o nome do filme (ex: Moana)" clasas="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <button id="searchButton" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-lg transition duration-300 ease-in-out shadow-md">
+                Buscar
+            </button>
+        </div>
+
+        
+        <div id="status" class="text-center text-gray-500 min-h-[1.5rem] mb-4"></div>
+
+        
+        <div class="bg-gray-50 p-4 rounded-lg shadow-inner max-h-[32rem] overflow-y-auto">
+            <h2 class="text-lg font-semibold mb-4 border-b border-gray-300 pb-2 text-gray-800">Resultados:</h2>
+            
+            
+            <div id="results-output" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            
+            const searchButton = document.getElementById('searchButton');
+            const searchInput = document.getElementById('searchInput');
+            const resultsOutput = document.getElementById('results-output');
+            const statusDiv = document.getElementById('status');
+
+            
+            async function fetchData() {
+                
+                const searchTerm = searchInput.value.trim();
+
+                
+                if (searchTerm === '') {
+                    statusDiv.textContent = 'Por favor, digite o nome de um filme.';
+                    statusDiv.classList.add('text-red-500');
+                    return;
+                }
+
+                
+                
+                const apiUrl = `https://api.disneyapi.dev/character?films=${encodeURIComponent(searchTerm)}`;
+
+                
+                resultsOutput.innerHTML = '';
+                statusDiv.textContent = 'Carregando...';
+                statusDiv.classList.remove('text-red-500');
+                statusDiv.classList.add('text-gray-500');
+                searchButton.disabled = true;
+                searchInput.disabled = true;
+
+                try {
+                    
+                    const response = await fetch(apiUrl);
+
+                    if (!response.ok) {
+                        throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
+                    }
+
+                    
+                    const data = await response.json();
+
+                    
+                    if (data.data && data.data.length > 0) {
+                        statusDiv.textContent = `Encontrados ${data.data.length} personagens.`;
+                        
+                        data.data.forEach(character => {
+                            
+                            const card = document.createElement('div');
+                            card.className = 'bg-white p-3 rounded-lg shadow-md transition transform hover:scale-105 duration-300';
+
+                            
+                            const img = document.createElement('img');
+                            img.src = character.imageUrl;
+                            img.alt = character.name;
+                            
+                            img.onerror = function() {
+                                this.src = `https://placehold.co/400x400/eeeeee/999999?text=${encodeURIComponent(character.name)}`;
+                                this.classList.add('object-contain'); 
+                            };
+                            img.className = 'w-full h-48 object-cover rounded-md mb-2 bg-gray-200';
+                            
+                            
+                            const name = document.createElement('h3');
+                            name.textContent = character.name;
+                            name.className = 'font-bold text-base text-gray-800 truncate'; 
+
+                            card.appendChild(img);
+                            card.appendChild(name);
+                            resultsOutput.appendChild(card);
+                        });
+
+                    } else {
+                        statusDiv.textContent = 'Nenhum personagem encontrado para esse filme.';
+                    }
+
+                } catch (error) {
+                    
+                    console.error('Falha ao buscar dados:', error);
+                    statusDiv.textContent = `Falha ao carregar: ${error.message}`;
+                    statusDiv.classList.add('text-red-500');
+                } finally {
+                    
+                    searchButton.disabled = false;
+                    searchInput.disabled = false;
+                }
+            }
+
+            
+            searchButton.addEventListener('click', fetchData);
+            
+            
+            searchInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    fetchData();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
